@@ -4,7 +4,7 @@ import urllib.request
 # ----------------------------
 # Paste your OpenRouter API key here
 # ----------------------------
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "YOUR_OPENROUTER_API_KEY_HERE"
 
 REPAIR_DATA = {
     # Electronics
