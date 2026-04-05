@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from database import init_db, get_db
 from estimator import get_estimate
+from nearby import get_nearby_repair_shops
 import sqlite3
 
 app = Flask(__name__)
+CORS(app)
+
 
 # Initialize the database when app starts
 init_db()
@@ -29,7 +33,7 @@ def estimate():
     # Get repair vs replace estimate
     result = get_estimate(item, condition)
     if not result:
-        return jsonify({"error": f"Could not estimate costs for '{item}'. Please try again or rephrase the item name."}), 404
+        return jsonify({"error": f"Item '{item}' not recognized. Try a common item like 'laptop', 'phone', or 'bike'."}), 404
 
     repair_cost = result["repair_cost"]
     replace_cost = result["replace_cost"]
@@ -116,6 +120,37 @@ def list_items():
     from estimator import REPAIR_DATA
     items = sorted(REPAIR_DATA.keys())
     return jsonify({"supported_items": items, "total": len(items)}), 200
+
+
+# ----------------------------
+# GET /nearby-shops
+# Find nearby repair shops based on zip code and item
+# Example: /nearby-shops?zip=07936&item=laptop
+# ----------------------------
+@app.route("/nearby-shops", methods=["GET"])
+def nearby_shops():
+    zip_code = request.args.get("zip", "").strip()
+    item = request.args.get("item", "").strip().lower()
+
+    if not zip_code:
+        return jsonify({"error": "Missing required parameter: zip"}), 400
+    if not item:
+        return jsonify({"error": "Missing required parameter: item"}), 400
+
+    shops = get_nearby_repair_shops(zip_code, item)
+
+    if shops is None:
+        return jsonify({"error": "Could not find nearby shops. Check your zip code or API key."}), 500
+
+    if len(shops) == 0:
+        return jsonify({"message": "No repair shops found nearby.", "shops": []}), 200
+
+    return jsonify({
+        "item": item,
+        "zip": zip_code,
+        "total_found": len(shops),
+        "shops": shops
+    }), 200
 
 
 if __name__ == "__main__":

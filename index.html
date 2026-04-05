@@ -371,6 +371,93 @@
 
     .error-msg.visible { display: block; }
 
+    /* Nearby Shops */
+    .shops-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+      display: none;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .shops-card.visible { display: block; }
+
+    .shops-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .shop-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .shop-info { flex: 1; }
+
+    .shop-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .shop-address {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .shop-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .shop-rating {
+      background: rgba(184,245,103,0.1);
+      border: 1px solid rgba(184,245,103,0.2);
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 100px;
+    }
+
+    .shop-link {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .shop-link:hover { color: var(--green); }
+
+    .shop-open {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: var(--green);
+    }
+
+    .shop-closed {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: var(--red);
+    }
+
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -442,6 +529,12 @@
       <div class="savings" id="savingsMsg"></div>
     </div>
 
+    <!-- Nearby Shops -->
+    <div class="shops-card" id="shopsCard">
+      <div class="shops-title">📍 Nearby Repair Shops</div>
+      <div id="shopsList"></div>
+    </div>
+
     <!-- History -->
     <div>
       <div class="section-title">
@@ -488,6 +581,7 @@
         }
 
         showResult(data);
+        loadNearbyShops(data.item, data.zip);
         loadHistory();
       } catch (e) {
         showError('Could not connect to the server. Make sure it\'s running!');
@@ -533,6 +627,39 @@
 
       card.classList.add('visible');
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function loadNearbyShops(item, zip) {
+      const card = document.getElementById('shopsCard');
+      const list = document.getElementById('shopsList');
+      card.classList.add('visible');
+      list.innerHTML = '<div class="empty-state">Finding nearby shops...</div>';
+
+      try {
+        const res = await fetch(`${API}/nearby-shops?zip=${zip}&item=${encodeURIComponent(item)}`);
+        const data = await res.json();
+
+        if (!res.ok || !data.shops || data.shops.length === 0) {
+          list.innerHTML = '<div class="empty-state">No repair shops found nearby.</div>';
+          return;
+        }
+
+        list.innerHTML = data.shops.map(shop => `
+          <div class="shop-item">
+            <div class="shop-info">
+              <div class="shop-name">${shop.name}</div>
+              <div class="shop-address">${shop.address}</div>
+              ${shop.open_now === true ? '<div class="shop-open">● Open Now</div>' : shop.open_now === false ? '<div class="shop-closed">● Closed</div>' : ''}
+            </div>
+            <div class="shop-right">
+              ${shop.rating !== 'N/A' ? `<div class="shop-rating">⭐ ${shop.rating} (${shop.total_ratings})</div>` : ''}
+              <a class="shop-link" href="${shop.maps_link}" target="_blank">View on Maps →</a>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = '<div class="empty-state">Could not load nearby shops.</div>';
+      }
     }
 
     function showError(msg) {
