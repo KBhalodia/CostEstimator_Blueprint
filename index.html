@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Is It Worth Fixing?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0e;
+      --card: #161616;
+      --border: #2a2a2a;
+      --green: #b8f567;
+      --yellow: #f5d767;
+      --red: #f56767;
+      --text: #f0f0f0;
+      --muted: #666;
+      --radius: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+
+    /* Ambient glow background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(184,245,103,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 620px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(184,245,103,0.1);
+      border: 1px solid rgba(184,245,103,0.3);
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1px;
+    }
+
+    h1 span { color: var(--green); }
+
+    .subtitle {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    /* Form card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s ease 0.1s both;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      padding: 14px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--green);
+    }
+
+    input::placeholder { color: var(--muted); }
+
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      background: var(--green);
+      color: #0e0e0e;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 16px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.5px;
+    }
+
+    button[type="submit"]:hover { opacity: 0.9; }
+    button[type="submit"]:active { transform: scale(0.99); }
+    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Result card */
+    .result-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+      display: none;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .result-card.visible { display: block; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .result-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .result-title {
+      font-size: 13px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .verdict-text {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .verdict-text.fix { color: var(--green); }
+    .verdict-text.maybe { color: var(--yellow); }
+    .verdict-text.replace { color: var(--red); }
+
+    .costs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .cost-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .cost-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .cost-value {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .cost-value.repair { color: var(--green); }
+    .cost-value.replace { color: var(--red); }
+
+    .savings {
+      background: rgba(184,245,103,0.06);
+      border: 1px solid rgba(184,245,103,0.2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* History */
+    .section-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+
+    .clear-btn:hover { color: var(--red); }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .history-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .history-left { flex: 1; }
+
+    .history-item-name {
+      font-weight: 700;
+      font-size: 15px;
+      text-transform: capitalize;
+      margin-bottom: 4px;
+    }
+
+    .history-meta {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .history-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .history-verdict {
+      font-size: 18px;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--border);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+
+    .delete-btn:hover { color: var(--red); }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #0e0e0e;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .error-msg {
+      background: rgba(245,103,103,0.1);
+      border: 1px solid rgba(245,103,103,0.3);
+      color: var(--red);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 14px;
+      margin-top: 16px;
+      display: none;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .error-msg.visible { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Repair Estimator</div>
+      <h1>Is It Worth <span>Fixing?</span></h1>
+      <p class="subtitle">Enter a broken item and get an instant repair vs. replace verdict.</p>
+    </header>
+
+    <!-- Form -->
+    <div class="card">
+      <div class="form-group">
+        <label>What's broken?</label>
+        <input type="text" id="item" placeholder="e.g. laptop, airpods, bike..." autocomplete="off"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Condition</label>
+          <div class="select-wrap">
+            <select id="condition">
+              <option value="good">Good — minor damage</option>
+              <option value="fair" selected>Fair — some damage</option>
+              <option value="poor">Poor — heavy damage</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Zip Code</label>
+          <input type="text" id="zip" placeholder="e.g. 07936" maxlength="10"/>
+        </div>
+      </div>
+      <button type="submit" id="submitBtn" onclick="submitEstimate()">Check It →</button>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div class="result-icon" id="resultIcon">🔧</div>
+        <div>
+          <div class="result-title">Verdict for <span id="resultItem">—</span></div>
+          <div class="verdict-text" id="verdictText">—</div>
+        </div>
+      </div>
+      <div class="costs">
+        <div class="cost-box">
+          <div class="cost-label">Est. Repair Cost</div>
+          <div class="cost-value repair" id="repairCost">—</div>
+        </div>
+        <div class="cost-box">
+          <div class="cost-label">Est. Replace Cost</div>
+          <div class="cost-value replace" id="replaceCost">—</div>
+        </div>
+      </div>
+      <div class="savings" id="savingsMsg"></div>
+    </div>
+
+    <!-- History -->
+    <div>
+      <div class="section-title">
+        Recent Searches
+        <button class="clear-btn" onclick="clearHistory()">clear all</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="empty-state">No searches yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://127.0.0.1:5000';
+
+    async function submitEstimate() {
+      const item = document.getElementById('item').value.trim();
+      const condition = document.getElementById('condition').value;
+      const zip = document.getElementById('zip').value.trim();
+      const btn = document.getElementById('submitBtn');
+      const errorMsg = document.getElementById('errorMsg');
+
+      if (!item || !zip) {
+        showError('Please fill in the item name and zip code.');
+        return;
+      }
+
+      errorMsg.classList.remove('visible');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Checking...';
+
+      try {
+        const res = await fetch(`${API}/estimate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item, condition, zip })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'Something went wrong.');
+          return;
+        }
+
+        showResult(data);
+        loadHistory();
+      } catch (e) {
+        showError('Could not connect to the server. Make sure it\'s running!');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Check It →';
+      }
+    }
+
+    function showResult(data) {
+      const card = document.getElementById('resultCard');
+      const repair = parseFloat(data.estimated_repair_cost.replace('$', ''));
+      const replace = parseFloat(data.estimated_replace_cost.replace('$', ''));
+      const savings = replace - repair;
+
+      document.getElementById('resultItem').textContent = data.item;
+      document.getElementById('repairCost').textContent = data.estimated_repair_cost;
+      document.getElementById('replaceCost').textContent = data.estimated_replace_cost;
+
+      const verdictEl = document.getElementById('verdictText');
+      const iconEl = document.getElementById('resultIcon');
+
+      if (data.verdict.includes('Fix It ✅')) {
+        verdictEl.textContent = 'Fix It — Repair is worth it!';
+        verdictEl.className = 'verdict-text fix';
+        iconEl.textContent = '✅';
+      } else if (data.verdict.includes('Probably')) {
+        verdictEl.textContent = 'Probably Fix It — Still cheaper.';
+        verdictEl.className = 'verdict-text maybe';
+        iconEl.textContent = '🤔';
+      } else {
+        verdictEl.textContent = 'Replace It — Not worth fixing.';
+        verdictEl.className = 'verdict-text replace';
+        iconEl.textContent = '❌';
+      }
+
+      const savingsMsg = document.getElementById('savingsMsg');
+      if (savings > 0) {
+        savingsMsg.textContent = `💰 You'd save $${savings.toFixed(0)} by repairing instead of replacing.`;
+      } else {
+        savingsMsg.textContent = `⚠️ Repair costs more than replacement — consider buying new.`;
+      }
+
+      card.classList.add('visible');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = '⚠ ' + msg;
+      el.classList.add('visible');
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch(`${API}/history`);
+        const data = await res.json();
+        const list = document.getElementById('historyList');
+
+        if (!data.length) {
+          list.innerHTML = '<div class="empty-state">No searches yet.</div>';
+          return;
+        }
+
+        list.innerHTML = data.map(item => {
+          let icon = item.verdict.includes('Fix It ✅') ? '✅' : item.verdict.includes('Probably') ? '🤔' : '❌';
+          return `
+            <div class="history-item" id="history-${item.id}">
+              <div class="history-left">
+                <div class="history-item-name">${item.item}</div>
+                <div class="history-meta">${item.condition} condition · ZIP ${item.zip} · repair ${item.estimated_repair_cost} vs replace ${item.estimated_replace_cost}</div>
+              </div>
+              <div class="history-right">
+                <span class="history-verdict">${icon}</span>
+                <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Could not load history', e);
+      }
+    }
+
+    async function deleteItem(id) {
+      try {
+        await fetch(`${API}/history/${id}`, { method: 'DELETE' });
+        document.getElementById(`history-${id}`)?.remove();
+        const list = document.getElementById('historyList');
+        if (!list.children.length) {
+          list.innerHTML = '<div class="empty-state">No searches yet.</div>';
+        }
+      } catch (e) {
+        console.error('Could not delete', e);
+      }
+    }
+
+    async function clearHistory() {
+      try {
+        const res = await fetch(`${API}/history`);
+        const data = await res.json();
+        await Promise.all(data.map(item => fetch(`${API}/history/${item.id}`, { method: 'DELETE' })));
+        loadHistory();
+        document.getElementById('resultCard').classList.remove('visible');
+      } catch (e) {
+        console.error('Could not clear history', e);
+      }
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitEstimate();
+    });
+
+    // Load history on start
+    loadHistory();
+  </script>
+</body>
+</html>
